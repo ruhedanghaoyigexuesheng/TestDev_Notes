@@ -170,6 +170,10 @@ var MD = (function () {
       return '\u0001' + (codes.length - 1) + '\u0001';
     });
     s = esc(s);
+    // 图片（必须放在链接之前，否则 ![alt](src) 会被当成 [alt](src)）
+    s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, function (_, alt, src) {
+      return '<img alt="' + alt + '" src="' + src + '" loading="lazy" decoding="async">';
+    });
     s = s.replace(/\*\*([^\n*]+?)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, function (_, t, u) {
       return '<a href="' + u + '" target="_blank" rel="noopener">' + t + '</a>';

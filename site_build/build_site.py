@@ -93,6 +93,33 @@ def read_md(filename: str) -> str:
     return p.read_text(encoding="utf-8")
 
 
+# ---------------------------------------------------------------- 图片内联
+MIME = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".gif": "image/gif", ".svg": "image/svg+xml", ".webp": "image/webp",
+}
+_IMG_RE = re.compile(r"!\[([^\]]*)\]\((?!https?://|data:)([^)\s]+)\)")
+
+
+def inline_assets(content: str) -> str:
+    """把 ![alt](assets/xxx) 内联成 data URI，保证单文件 HTML 自包含。"""
+    def repl(m):
+        alt, rel = m.group(1), m.group(2)
+        p = (ROOT / rel).resolve()
+        try:
+            p.relative_to(ROOT)
+        except ValueError:
+            return m.group(0)                     # 越界路径不处理
+        if not p.exists():
+            print(f"  ⚠️ 图片不存在，跳过: {rel}")
+            return m.group(0)
+        mime = MIME.get(p.suffix.lower(), "application/octet-stream")
+        b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+        print(f"  🖼  内联图片 {rel} ({len(b64) * 3 // 4 // 1024} KB)")
+        return f"![{alt}](data:{mime};base64,{b64})"
+    return _IMG_RE.sub(repl, content)
+
+
 def strip_fences(content: str) -> str:
     """把代码块内容替换成空行（保留行结构），便于统计块外的表格/字数。"""
     out = []
@@ -146,13 +173,14 @@ def build_data() -> dict:
     total_chars = total_codes = total_tables = 0
 
     # 首页入口（README 作为"使用说明"）
+    readme_raw = read_md("README.md")
     start_art = {
         "id": "readme",
         "title": "使用说明与索引",
-        "desc": "三遍复习法、自查清单映射表、命名与拆分规则",
+        "desc": "首页预览、目录、80 条自查清单映射、使用与维护说明",
         "file": "README.md",
-        "content": read_md("README.md"),
-        **count_stats(read_md("README.md")),
+        "content": inline_assets(readme_raw),
+        **count_stats(readme_raw),
     }
     groups.append({"name": "开始", "articles": [start_art]})
 
