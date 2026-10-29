@@ -1,0 +1,22 @@
+# 把自己的 Python 缓存排除
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 构建/校验过程产生的临时文件
+site_build/*.png
+site_build/_*.html
+site_build/kb_data.json
+dist/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 本地个人配置（如以后加）
+*.local.*
+.env
