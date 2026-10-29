@@ -20,3 +20,9 @@ Thumbs.db
 # 本地个人配置（如以后加）
 *.local.*
 .env
+
+# 本地分发用的单文件（仓库里用 index.html 部署）
+测试开发知识库.html
+
+# 需要带 workflow scope 的 token 才能推送（见 DEPLOY.md 说明）
+# 解决后删掉下面这行即可让 Actions 生效.github/workflows/
