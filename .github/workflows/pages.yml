@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+# 触发：推送到 main 分支，或手动运行
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'site_build/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Pages 部署需要的权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个部署，避免并发冲突
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # ── 1. 从 Markdown 构建单文件站点 ──────────────────────
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 生成站点（无第三方依赖，仅标准库）
+        run: python site_build/build_site.py --out dist/index.html
+
+      - name: 校验产物
+        run: |
+          set -e
+          test -s dist/index.html
+          ls -lh dist/
+          echo "--- 内嵌检查 ---"
+          grep -c "测试开发" dist/index.html || true
+          grep -q "const KB" dist/index.html && echo "OK: 数据已内嵌"
+          grep -q "__KB_DATA__" dist/index.html && echo "WARN: 存在未替换占位符" || echo "OK: 无占位符残留"
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传静态产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  # ── 2. 部署到 GitHub Pages ────────────────────────────
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署
+        id: deployment
+        uses: actions/deploy-pages@v4
